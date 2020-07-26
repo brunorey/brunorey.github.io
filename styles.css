@@ -68,3 +68,8 @@ path.line-2 {
     stroke: none;
     fill: #9c9c9c;
 }
+
+.attribution {
+    text-align: right;
+    font-size: x-small;
+} 
