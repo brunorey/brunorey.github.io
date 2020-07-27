@@ -33,21 +33,37 @@ body {
 }
 
 /* LINE CHART */
-path.line-0 {
+path.line {
     fill: none;
+    stroke: #cccccc;
+}
+
+path#line-0 {
     stroke: #ed3700;
 }
 
-path.line-1 {
-    fill: none;
+path#line-1 {
     stroke: #2b2929;
-    stroke-dasharray: 2;
 }
 
-path.line-2 {
-    fill: none;
+path#line-2 {
     stroke: #9c9c9c;
-    stroke-dasharray: 6;
+}
+
+path#line-3 {
+    stroke: #364597;
+}
+
+path#line-4 {
+    stroke: #7a4194;
+}
+
+path#line-5 {
+    stroke: #c99859;
+}
+
+path#line-6 {
+    stroke: #98c959;
 }
 
 .serie_label {
