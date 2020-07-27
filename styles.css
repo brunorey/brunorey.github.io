@@ -75,8 +75,11 @@ path#line-6 {
 /* TOOLTIP */
 .tooltip {
     fill: #2b2929;
-    /* font-family: Georgia; */
-    font-size: 150%;
+    font-size: 100%;
+    background: #eee;
+    padding: 5px;
+    border-radius: 10px;
+    border: #ccc 1px solid;
 }
 
 /* POINTS */
