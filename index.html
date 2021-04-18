@@ -42,22 +42,29 @@
                 .classed("svg-content", true);
 
             //-----------------------------DATA-----------------------------//
-            const timeConv = d3.timeParse("%Y-%m-%d");
-            const dataset = d3.csv("covid19-mendoza.csv");
-            dataset.then(function(data) {
-                var slices = data.columns.slice(1).map(function(id) {
+            const timeConv = d3.timeParse("%d/%m/%Y");
+            const dataset = d3.json("https://especialess3.lanacion.com.ar/coronavirus_admin/jsons/totales_provincias_por_dia_NACION.json");
+            dataset.then(function(dataNacion) {
+                var data = dataNacion.filter(function (entry) {
+                    return entry.Provincia === 'Mendoza';
+                });
+                //var columnas_todas = Object.keys(data[0]);
+                var columnas = [
+                    'Afectados',
+                    'Fallecidos',
+                ];
+                var slices = columnas.map(function(col) {
                     return {
-                        id: id,
-                        values: data.map(function(d){
+                        id: col,
+                        values: data.map(function(dia){
                             return {
-                                date: timeConv(d.date),
-                                measurement: +d[id],
-                                series: id
+                                date: timeConv(dia.Fecha),
+                                measurement: +dia[col],
+                                series: col
                             };
                         })
                     };
                 });
-
             //----------------------------SCALES----------------------------//
                 const xScale = d3.scaleTime().range([0,width]);
                 yScale=null
@@ -69,7 +76,7 @@
                     yScale=yScaleLin;
                 }
                 xScale.domain(d3.extent(data, function(d){
-                        return timeConv(d.date)
+                        return timeConv(d.Fecha)
                     })
                 );
 
