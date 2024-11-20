@@ -1,217 +1,52 @@
 <!DOCTYPE html>
-<html>
-    <!-- example taken from "Making an Interactive Line Chart in D3.js v.5" -->
-    <!-- see https://datawanderings.com/2019/11/01/tutorial-making-an-interactive-line-chart-in-d3-js-v-5/ -->
-    <head>
-        <meta charset="utf-8">
-        <title>Estadísticas de Covid-19 en Mendoza, Argentina</title>
-        <script type="text/javascript" src="https://d3js.org/d3.v5.min.js"></script>
-        <link rel="stylesheet" type="text/css" href="styles.css">
-        <style></style>
-    </head>
-    <body>
-        <h1>Estadísticas de Covid-19 en Mendoza, Argentina</h1>
-        <div id="container" class="svg-container"></div>
-        <br/>
-        <div id="attribution" class="attribution">
-            Este gráfico utiliza los <a href="https://especialess3.lanacion.com.ar/coronavirus_admin/jsons/totales_provincias_por_dia_NACION.json">datos publicados por LaNación</a>
-        </div>
-        <br/>
-        <button onclick="toggleaxis()">Cambiar escala (lineal/logarítmica)</button>
-        <br/>
-        <script>
-        scale="lin"
-        function draw(scale) {
-            //------------------------1. PREPARATION------------------------//
-            //-----------------------------SVG------------------------------//
-            const width = 960;
-            const height = 500;
-            const margin = 5;
-            const padding = 5;
-            const adj = 30;
-            // we are appending SVG first
-            const svg = d3.select("div#container").append("svg")
-                .attr("preserveAspectRatio", "xMinYMin meet")
-                .attr("viewBox", "-"
-                    + adj + " -"
-                    + adj + " "
-                    + (width + adj*6) + " "
-                    + (height + adj*3))
-                .style("padding", padding)
-                .style("margin", margin)
-                .classed("svg-content", true);
-
-            //-----------------------------DATA-----------------------------//
-            const timeConv = d3.timeParse("%d/%m/%Y");
-            const dataset = d3.json("https://especialess3.lanacion.com.ar/coronavirus_admin/jsons/totales_provincias_por_dia_NACION.json");
-            dataset.then(function(dataNacion) {
-                var data = dataNacion.filter(function (entry) {
-                    return entry.Provincia === 'Mendoza';
-                });
-                //var columnas_todas = Object.keys(data[0]);
-                var columnas = [
-                    'Afectados_Promedio',
-                    'Fallecidos_Promedio',
-                ];
-                var slices = columnas.map(function(col) {
-                    return {
-                        id: col,
-                        values: data.map(function(dia){
-                            return {
-                                date: timeConv(dia.Fecha),
-                                measurement: +dia[col],
-                                series: col
-                            };
-                        })
-                    };
-                });
-            //----------------------------SCALES----------------------------//
-                const xScale = d3.scaleTime().range([0,width]);
-                yScale=null
-                const yScaleLin = d3.scaleLinear().rangeRound([height, 0]);
-                const yScaleLog = d3.scaleSymlog().rangeRound([height, 0]);
-                if(scale=='log') {
-                    yScale=yScaleLog;
-                } else {
-                    yScale=yScaleLin;
-                }
-                xScale.domain(d3.extent(data, function(d){
-                        return timeConv(d.Fecha)
-                    })
-                );
-
-                yScale.domain([(0), d3.max(slices, function(c) {
-                    return d3.max(c.values, function(d) {
-                            return d.measurement + 4; 
-                        });
-                    })
-                ]);
-
-            //-----------------------------AXES-----------------------------//
-                logFormat10 = yScale.tickFormat(10)
-                const yaxis = d3.axisLeft()
-                    .ticks(10)
-                    .scale(yScale);
-
-                const xaxis = d3.axisBottom()
-                    .ticks(d3.timeDay.every('w'))
-                    .tickFormat(d3.timeFormat('%b %d'))
-                    .scale(xScale);
-
-            //----------------------------LINES-----------------------------//
-                const line = d3.line()
-                    .x(function(d) { return xScale(d.date); })
-                    .y(function(d) { return yScale(d.measurement); });
-
-                let id = 0;
-                const generate_line_id = function () {
-                    return "line-"+id++;
-                }  
-
-            //---------------------------TOOLTIP----------------------------//
-                const tooltip = d3.select("body").append("div")
-                    .attr("class", "tooltip")
-                    .style("position", "absolute");
-
-            //-------------------------2. DRAWING---------------------------//
-            //-----------------------------AXES-----------------------------//
-                svg.append("g")
-                    .attr("class", "axis")
-                    .attr("transform", "translate(0," + height + ")")
-                    .call(xaxis);
-
-                svg.append("g")
-                    .attr("class", "axis")
-                    .call(yaxis)
-                    .append("text")
-                    .attr("transform", "rotate(-90)")
-                    .attr("dy", ".75em")
-                    .attr("y", 6)
-                    .style("text-anchor", "end")
-                    .text("");
-
-            //----------------------------LINES-----------------------------//
-                const lines = svg.selectAll("lines")
-                    .data(slices)
-                    .enter()
-                    .append("g");
-
-                lines.append("path")
-                    .attr("class", "line")
-                    .attr("id", generate_line_id)
-                    .attr("d", function(d) { return line(d.values); });
-
-                lines.append("text")
-                    .attr("class","serie_label")
-                    .datum(function(d) {
-                        return {
-                            id: d.id,
-                            value: d.values[d.values.length - 1]}; })
-                    .attr("transform", function(d) {
-                            return "translate(" + (xScale(d.value.date) + 10)  
-                            + "," + (yScale(d.value.measurement) + 5 )+ ")"; })
-                    .attr("x", 5)
-                    .text(function(d) { return d.id; });
-
-            //---------------------------POINTS-----------------------------// 
-                lines.selectAll("points")
-                    .data(function(d) {return d.values})
-                    .enter()
-                    .append("circle")
-                    .attr("cx", function(d) { return xScale(d.date); })      
-                    .attr("cy", function(d) { return yScale(d.measurement); })    
-                    .attr("r", 2)
-                    .attr("class","point")
-                    .attr("id", function(d) { return "point-of-" + this.parentElement.firstChild.id })
-            //---------------------------EVENTS-----------------------------//    
-                    .on('mouseover', function(d) {
-                        tooltip.transition()
-                            .delay(30)
-                            .duration(200)
-                            .style("display", "block");
-                        tooltip.html(d.series + ": " + d.measurement)
-                            .style("left", (d3.event.pageX + 25) + "px")
-                            .style("top", (d3.event.pageY) + "px");
-
-                        const selection = d3.select(this).raise();
-
-                        selection
-                            .transition()
-                            .delay("20")
-                            .duration("200")
-                            .attr("r", 5)
-                            .style("display", "block")
-                            //.style("fill","#ed3700");
-                    })                
-                    .on("mouseout", function(d) {      
-                        tooltip.transition()        
-                            .duration(100)      
-                            .style("display", "none");  
-
-                        const selection = d3.select(this);
-
-                        selection
-                            .transition()
-                            .delay("20")
-                            .duration("200")
-                            .attr("r", 2)
-                    });
-
-            });
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QCon resources list</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+            color: #333;
         }
-
-        function toggleaxis(){
-            if(scale=='lin') {
-                scale='log';
-            } else {
-                scale='lin';
-            }
-            d3.select(".svg-content").remove()
-            d3.select(".tooltip").remove()
-            draw(scale);
+        h1 {
+            text-align: center;
+            color: #555;
         }
-
-        draw(scale);
-        </script>
-    </body>
+        h2 {
+            color: #333
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 10px 0;
+        }
+        a {
+            text-decoration: none;
+            color: #007BFF;
+        }
+        a:hover {
+            text-decoration: underline;
+            color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>QCon: From Junior to Staff and beyond</h1>
+    <h2>Useful links and resources</h1>
+    <ul>
+        <li><a href="https://www.youtube.com/watch?v=PTo9e3ILmms" target="_blank">Performance vs Trust</a> by Simon Sinek</li>
+        <li><a href="https://levels.fyi" target="_blank">Levels.fyi</a></li>
+        <li><a href="https://www.nidup.io/garden/engineering-career-ladders#public-engineering-career-ladders" target="_blank">30+ Engineering Career Ladders</a></li>
+        <li><a href="https://docs.google.com/spreadsheets/d/1gP6bKYmNTjEvdo2rF9Q9CCRwIfF_fasbQkTLMohnNVk/preview" target="_blank">Eventbrite's career ladder</a></li>
+        <li><a href="https://staffeng.com/guides/staff-archetypes/" target="_blank">Staff Eng Archetypes</a></li>
+        <li><a href="https://jvns.ca/blog/brag-documents/" target="_blank">Get your work recognized: write a brag document</a> by Julia Evans</li>
+        <li><a href="https://github.com/readme/guides/publishing-your-work" target="_blank">Publishing your work increases your luck</a> by Aaron Francis</li>
+        <li><a href="https://www.eventbrite.com/engineering/writing-our-golden-path/" target="_blank">Eventbrite's golden path</a></li>
+    </ul>
+</body>
 </html>
